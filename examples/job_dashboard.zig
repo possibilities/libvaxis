@@ -469,7 +469,14 @@ pub fn main() !void {
                     }
                 }
 
-                // Row 1: project name
+                // Row 1: title
+                const title_display: []const u8 = if (job.title.len > 0) job.title else "(untitled)";
+                _ = card.printSegment(.{
+                    .text = title_display,
+                    .style = .{ .fg = if (is_selected) title_fg else project_fg, .bg = bg, .bold = true },
+                }, .{ .col_offset = 2, .row_offset = 1 });
+
+                // Row 2: project name
                 const project_name: []const u8 = if (job.prise_session.len > 0)
                     job.prise_session
                 else if (job.tmux_session.len > 0)
@@ -478,14 +485,7 @@ pub fn main() !void {
                     "(no project)";
                 _ = card.printSegment(.{
                     .text = project_name,
-                    .style = .{ .fg = project_fg, .bg = bg, .bold = true },
-                }, .{ .col_offset = 2, .row_offset = 1 });
-
-                // Row 2: title
-                const title_display: []const u8 = if (job.title.len > 0) job.title else "(untitled)";
-                _ = card.printSegment(.{
-                    .text = title_display,
-                    .style = .{ .fg = if (is_selected) title_fg else dim_fg, .bg = bg },
+                    .style = .{ .fg = dim_fg, .bg = bg },
                 }, .{ .col_offset = 2, .row_offset = 2 });
 
                 job_idx += 1;
