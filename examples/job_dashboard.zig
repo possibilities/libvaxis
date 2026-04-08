@@ -262,6 +262,7 @@ pub fn main() !void {
     reader_thread.detach();
 
     var selected: u16 = 0;
+    var scroll_offset: u16 = 0;
 
     // Colors
     const header_bg: vaxis.Cell.Color = .{ .rgb = .{ 40, 40, 60 } };
@@ -409,14 +410,33 @@ pub fn main() !void {
         } else {
             const card_height: u16 = 4; // border-top + project + title + border-bottom
             const card_gap: u16 = 1;
+            const card_stride: u16 = card_height + card_gap;
             const card_margin: u16 = 2; // left/right margin
+            const top_pad: u16 = 1; // space above first card
             const card_width: u16 = if (win.width > card_margin * 2 + 4) win.width - card_margin * 2 else win.width;
 
-            var y: u16 = 0;
+            // Scroll so selected card is always visible
+            const sel_top = @as(u32, selected) * card_stride + top_pad;
+            const sel_bottom = sel_top + card_height;
+            if (sel_top < scroll_offset) {
+                scroll_offset = @intCast(sel_top -| top_pad);
+            } else if (sel_bottom > @as(u32, scroll_offset) + list_height) {
+                scroll_offset = @intCast(sel_bottom -| list_height);
+            }
+
             var job_idx: u16 = 0;
             var it = state.jobs.iterator();
             while (it.next()) |entry| {
-                if (y + card_height > list_height) break;
+                const card_top_abs = @as(i32, job_idx) * card_stride + top_pad;
+                const card_top = card_top_abs - @as(i32, scroll_offset);
+
+                // Skip cards entirely above viewport
+                if (card_top + card_height < 0) {
+                    job_idx += 1;
+                    continue;
+                }
+                // Stop if card starts below viewport
+                if (card_top >= list_height) break;
 
                 const job = entry.value_ptr.*;
                 const is_selected = job_idx == selected;
@@ -425,7 +445,7 @@ pub fn main() !void {
 
                 const card = list.child(.{
                     .x_off = @as(i17, @intCast(card_margin)),
-                    .y_off = @as(i17, @intCast(y)),
+                    .y_off = @as(i17, @intCast(card_top)),
                     .width = card_width,
                     .height = card_height,
                 });
@@ -480,7 +500,6 @@ pub fn main() !void {
                     .style = .{ .fg = if (is_selected) title_fg else dim_fg, .bg = bg },
                 }, .{ .col_offset = 2, .row_offset = 2 });
 
-                y += card_height + card_gap;
                 job_idx += 1;
             }
             state.mutex.unlock();
