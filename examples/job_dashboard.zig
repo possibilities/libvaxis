@@ -413,11 +413,12 @@ pub fn main() !void {
             const card_stride: u16 = card_height + card_gap;
             const card_margin: u16 = 2; // left/right margin
             const top_pad: u16 = 1; // space above first card
+            const bottom_pad: u16 = 1; // space below last card
             const card_width: u16 = if (win.width > card_margin * 2 + 4) win.width - card_margin * 2 else win.width;
 
             // Scroll so selected card is always visible
             const sel_top = @as(u32, selected) * card_stride + top_pad;
-            const sel_bottom = sel_top + card_height;
+            const sel_bottom = sel_top + card_height + bottom_pad;
             if (sel_top < scroll_offset) {
                 scroll_offset = @intCast(sel_top -| top_pad);
             } else if (sel_bottom > @as(u32, scroll_offset) + list_height) {
@@ -430,8 +431,8 @@ pub fn main() !void {
                 const card_top_abs = @as(i32, job_idx) * card_stride + top_pad;
                 const card_top = card_top_abs - @as(i32, scroll_offset);
 
-                // Skip cards entirely above viewport
-                if (card_top + card_height < 0) {
+                // Skip cards above viewport (prevents overlapping header)
+                if (card_top < 0) {
                     job_idx += 1;
                     continue;
                 }
