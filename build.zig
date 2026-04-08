@@ -36,6 +36,7 @@ pub fn build(b: *std.Build) void {
         counter,
         fuzzy,
         image,
+        job_dashboard,
         main,
         scroll,
         split_view,
