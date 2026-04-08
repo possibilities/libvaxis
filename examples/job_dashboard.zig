@@ -311,7 +311,7 @@ pub fn main() !void {
         _ = header.printSegment(.{
             .text = " Job Dashboard",
             .style = .{ .fg = accent_fg, .bg = header_bg, .bold = true },
-        }, .{ .row_offset = 1 });
+        }, .{ .row_offset = 0 });
 
         // Status indicator
         state.mutex.lock();
@@ -338,8 +338,8 @@ pub fn main() !void {
             win.width - @as(u16, @intCast(status_text.len)) - 3
         else
             16;
-        _ = header.printSegment(.{ .text = dot, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col, .row_offset = 1 });
-        _ = header.printSegment(.{ .text = status_text, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col + 3, .row_offset = 1 });
+        _ = header.printSegment(.{ .text = dot, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col, .row_offset = 0 });
+        _ = header.printSegment(.{ .text = status_text, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col + 3, .row_offset = 0 });
 
         // Separator line at row 2
         {
