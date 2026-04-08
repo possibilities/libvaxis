@@ -276,8 +276,6 @@ pub fn main() !void {
     const status_ok: vaxis.Cell.Color = .{ .rgb = .{ 80, 200, 120 } };
     const status_warn: vaxis.Cell.Color = .{ .rgb = .{ 200, 180, 60 } };
     const status_bad: vaxis.Cell.Color = .{ .rgb = .{ 200, 80, 80 } };
-    const footer_bg: vaxis.Cell.Color = .{ .rgb = .{ 30, 30, 45 } };
-    const footer_fg: vaxis.Cell.Color = .{ .rgb = .{ 120, 120, 150 } };
     const accent_fg: vaxis.Cell.Color = .{ .rgb = .{ 130, 160, 220 } };
 
     while (true) {
@@ -304,20 +302,28 @@ pub fn main() !void {
             continue;
         }
 
-        // Header (3 rows: title centered in rows 0-1, separator at row 2)
+        // Header (3 rows: separator, title+status, separator)
         const header_height: u16 = 3;
         const header = win.child(.{ .width = win.width, .height = header_height });
         header.fill(.{ .style = .{ .bg = header_bg } });
+
+        // Top separator
+        {
+            var col: u16 = 0;
+            while (col < win.width) : (col += 1) {
+                header.writeCell(col, 0, .{ .char = .{ .grapheme = "\xe2\x94\x80" }, .style = .{ .fg = dim_fg, .bg = header_bg } }); // "─"
+            }
+        }
+
         _ = header.printSegment(.{
             .text = " Job Dashboard",
             .style = .{ .fg = accent_fg, .bg = header_bg, .bold = true },
-        }, .{ .row_offset = 0 });
+        }, .{ .row_offset = 1 });
 
         // Status indicator
         state.mutex.lock();
         const status = state.status;
         const err_msg = state.error_msg;
-        const job_count = state.jobs.count();
         state.mutex.unlock();
 
         const status_text: []const u8 = switch (status) {
@@ -338,10 +344,10 @@ pub fn main() !void {
             win.width - @as(u16, @intCast(status_text.len)) - 3
         else
             16;
-        _ = header.printSegment(.{ .text = dot, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col, .row_offset = 0 });
-        _ = header.printSegment(.{ .text = status_text, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col + 3, .row_offset = 0 });
+        _ = header.printSegment(.{ .text = dot, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col, .row_offset = 1 });
+        _ = header.printSegment(.{ .text = status_text, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col + 3, .row_offset = 1 });
 
-        // Separator line at row 2
+        // Bottom separator
         {
             var col: u16 = 0;
             while (col < win.width) : (col += 1) {
@@ -349,32 +355,8 @@ pub fn main() !void {
             }
         }
 
-        // Footer (1 row)
-        const footer = win.child(.{
-            .y_off = @as(i17, @intCast(win.height - 1)),
-            .width = win.width,
-            .height = 1,
-        });
-        footer.fill(.{ .style = .{ .bg = footer_bg } });
-        _ = footer.printSegment(.{
-            .text = " q quit  j/k navigate",
-            .style = .{ .fg = footer_fg, .bg = footer_bg },
-        }, .{});
-
-        // Job count on the right side of footer
-        var count_buf: [32]u8 = undefined;
-        const count_str = std.fmt.bufPrint(&count_buf, "{d} job{s} ", .{ job_count, if (job_count != 1) "s" else "" }) catch "? jobs ";
-        const count_col: u16 = if (win.width > @as(u16, @intCast(count_str.len)))
-            win.width - @as(u16, @intCast(count_str.len))
-        else
-            0;
-        _ = footer.printSegment(.{
-            .text = count_str,
-            .style = .{ .fg = dim_fg, .bg = footer_bg },
-        }, .{ .col_offset = count_col });
-
-        // Job list area (below header, above footer)
-        const list_height = win.height -| (header_height + 1);
+        // Job list area (below header)
+        const list_height = win.height -| header_height;
         if (list_height == 0) {
             try vx.render(tty.writer());
             continue;
