@@ -265,13 +265,13 @@ pub fn main() !void {
 
     // Colors
     const header_bg: vaxis.Cell.Color = .{ .rgb = .{ 40, 40, 60 } };
-    const header_fg: vaxis.Cell.Color = .{ .rgb = .{ 180, 180, 220 } };
-    const sel_bg: vaxis.Cell.Color = .{ .rgb = .{ 60, 90, 160 } };
-    const sel_fg: vaxis.Cell.Color = .{ .rgb = .{ 255, 255, 255 } };
-    const row_bg_1: vaxis.Cell.Color = .{ .rgb = .{ 20, 20, 30 } };
-    const row_bg_2: vaxis.Cell.Color = .{ .rgb = .{ 28, 28, 40 } };
-    const row_fg: vaxis.Cell.Color = .{ .rgb = .{ 180, 180, 190 } };
-    const dim_fg: vaxis.Cell.Color = .{ .rgb = .{ 100, 100, 120 } };
+    const sel_border: vaxis.Cell.Color = .{ .rgb = .{ 130, 160, 220 } };
+    const card_bg: vaxis.Cell.Color = .{ .rgb = .{ 28, 28, 42 } };
+    const card_bg_sel: vaxis.Cell.Color = .{ .rgb = .{ 36, 38, 56 } };
+    const title_fg: vaxis.Cell.Color = .{ .rgb = .{ 200, 200, 220 } };
+    const project_fg: vaxis.Cell.Color = .{ .rgb = .{ 130, 160, 220 } };
+    const dim_fg: vaxis.Cell.Color = .{ .rgb = .{ 80, 80, 100 } };
+    const card_border: vaxis.Cell.Color = .{ .rgb = .{ 50, 50, 70 } };
     const status_ok: vaxis.Cell.Color = .{ .rgb = .{ 80, 200, 120 } };
     const status_warn: vaxis.Cell.Color = .{ .rgb = .{ 200, 180, 60 } };
     const status_bad: vaxis.Cell.Color = .{ .rgb = .{ 200, 80, 80 } };
@@ -407,70 +407,81 @@ pub fn main() !void {
                 .style = .{ .fg = dim_fg },
             }, .{ .col_offset = center_col, .row_offset = center_row });
         } else {
-            // Column header
-            const col_header = list.child(.{ .width = list.width, .height = 1 });
-            col_header.fill(.{ .style = .{ .bg = header_bg } });
-            _ = col_header.printSegment(.{ .text = " TITLE", .style = .{ .fg = header_fg, .bg = header_bg, .bold = true } }, .{});
+            const card_height: u16 = 4; // border-top + project + title + border-bottom
+            const card_gap: u16 = 1;
+            const card_margin: u16 = 2; // left/right margin
+            const card_width: u16 = if (win.width > card_margin * 2 + 4) win.width - card_margin * 2 else win.width;
 
-            const sid_col: u16 = if (win.width > 40) win.width / 2 else 25;
-            _ = col_header.printSegment(.{ .text = "SESSION", .style = .{ .fg = header_fg, .bg = header_bg, .bold = true } }, .{ .col_offset = sid_col });
-
-            const env_col: u16 = if (win.width > 50) win.width -| 14 else win.width -| 8;
-            _ = col_header.printSegment(.{ .text = "ENV", .style = .{ .fg = header_fg, .bg = header_bg, .bold = true } }, .{ .col_offset = env_col });
-
-            // Job rows
-            const rows_area = list.child(.{ .y_off = 1, .width = list.width, .height = list_height -| 1 });
-
-            var row_idx: u16 = 0;
+            var y: u16 = 0;
+            var job_idx: u16 = 0;
             var it = state.jobs.iterator();
             while (it.next()) |entry| {
-                if (row_idx >= rows_area.height) break;
+                if (y + card_height > list_height) break;
 
                 const job = entry.value_ptr.*;
-                const is_selected = row_idx == selected;
-                const bg = if (is_selected) sel_bg else if (row_idx % 2 == 0) row_bg_1 else row_bg_2;
-                const fg = if (is_selected) sel_fg else row_fg;
+                const is_selected = job_idx == selected;
+                const bg = if (is_selected) card_bg_sel else card_bg;
+                const border_color = if (is_selected) sel_border else card_border;
 
-                const row_win = rows_area.child(.{
-                    .y_off = @as(i17, @intCast(row_idx)),
-                    .width = rows_area.width,
-                    .height = 1,
+                const card = list.child(.{
+                    .x_off = @as(i17, @intCast(card_margin)),
+                    .y_off = @as(i17, @intCast(y)),
+                    .width = card_width,
+                    .height = card_height,
                 });
-                row_win.fill(.{ .style = .{ .bg = bg } });
+                card.fill(.{ .style = .{ .bg = bg } });
 
-                // Title
-                const title_display: []const u8 = if (job.title.len > 0) job.title else "(untitled)";
-                _ = row_win.printSegment(.{
-                    .text = " ",
-                    .style = .{ .bg = bg },
-                }, .{});
-                const marker = if (is_selected) "\xe2\x96\xb8 " else "  "; // "▸ " or "  "
-                _ = row_win.printSegment(.{
-                    .text = marker,
-                    .style = .{ .fg = accent_fg, .bg = bg },
-                }, .{ .col_offset = 1 });
-                _ = row_win.printSegment(.{
-                    .text = title_display,
-                    .style = .{ .fg = fg, .bg = bg, .bold = is_selected },
-                }, .{ .col_offset = 3 });
-
-                // Session ID (truncated)
-                if (job.session_id.len > 0) {
-                    const max_sid: usize = @min(job.session_id.len, 12);
-                    _ = row_win.printSegment(.{
-                        .text = job.session_id[0..max_sid],
-                        .style = .{ .fg = if (is_selected) sel_fg else dim_fg, .bg = bg },
-                    }, .{ .col_offset = sid_col });
+                // Top border
+                {
+                    var col: u16 = 0;
+                    while (col < card_width) : (col += 1) {
+                        card.writeCell(col, 0, .{
+                            .char = .{ .grapheme = "\xe2\x94\x80" }, // "─"
+                            .style = .{ .fg = border_color, .bg = bg },
+                        });
+                    }
                 }
 
-                // Environment indicator
-                const env_label: []const u8 = if (job.prise_session.len > 0) "prise" else if (job.tmux_session.len > 0) "tmux" else "-";
-                _ = row_win.printSegment(.{
-                    .text = env_label,
-                    .style = .{ .fg = if (is_selected) sel_fg else dim_fg, .bg = bg },
-                }, .{ .col_offset = env_col });
+                // Bottom border
+                {
+                    var col: u16 = 0;
+                    while (col < card_width) : (col += 1) {
+                        card.writeCell(col, card_height - 1, .{
+                            .char = .{ .grapheme = "\xe2\x94\x80" }, // "─"
+                            .style = .{ .fg = border_color, .bg = bg },
+                        });
+                    }
+                }
 
-                row_idx += 1;
+                // Left accent bar for selected card
+                if (is_selected) {
+                    card.writeCell(0, 0, .{ .char = .{ .grapheme = "\xe2\x94\x8c" }, .style = .{ .fg = sel_border, .bg = bg } }); // "┌"
+                    card.writeCell(0, 1, .{ .char = .{ .grapheme = "\xe2\x96\x90" }, .style = .{ .fg = sel_border, .bg = bg } }); // "▐"
+                    card.writeCell(0, 2, .{ .char = .{ .grapheme = "\xe2\x96\x90" }, .style = .{ .fg = sel_border, .bg = bg } }); // "▐"
+                    card.writeCell(0, card_height - 1, .{ .char = .{ .grapheme = "\xe2\x94\x94" }, .style = .{ .fg = sel_border, .bg = bg } }); // "└"
+                }
+
+                // Row 1: project name
+                const project_name: []const u8 = if (job.prise_session.len > 0)
+                    job.prise_session
+                else if (job.tmux_session.len > 0)
+                    job.tmux_session
+                else
+                    "(no project)";
+                _ = card.printSegment(.{
+                    .text = project_name,
+                    .style = .{ .fg = project_fg, .bg = bg, .bold = true },
+                }, .{ .col_offset = 2, .row_offset = 1 });
+
+                // Row 2: title
+                const title_display: []const u8 = if (job.title.len > 0) job.title else "(untitled)";
+                _ = card.printSegment(.{
+                    .text = title_display,
+                    .style = .{ .fg = if (is_selected) title_fg else dim_fg, .bg = bg },
+                }, .{ .col_offset = 2, .row_offset = 2 });
+
+                y += card_height + card_gap;
+                job_idx += 1;
             }
             state.mutex.unlock();
         }
