@@ -304,13 +304,14 @@ pub fn main() !void {
             continue;
         }
 
-        // Header (2 rows)
-        const header = win.child(.{ .width = win.width, .height = 2 });
+        // Header (3 rows: title centered in rows 0-1, separator at row 2)
+        const header_height: u16 = 3;
+        const header = win.child(.{ .width = win.width, .height = header_height });
         header.fill(.{ .style = .{ .bg = header_bg } });
         _ = header.printSegment(.{
             .text = " Job Dashboard",
             .style = .{ .fg = accent_fg, .bg = header_bg, .bold = true },
-        }, .{});
+        }, .{ .row_offset = 1 });
 
         // Status indicator
         state.mutex.lock();
@@ -337,14 +338,14 @@ pub fn main() !void {
             win.width - @as(u16, @intCast(status_text.len)) - 3
         else
             16;
-        _ = header.printSegment(.{ .text = dot, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col });
-        _ = header.printSegment(.{ .text = status_text, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col + 3 });
+        _ = header.printSegment(.{ .text = dot, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col, .row_offset = 1 });
+        _ = header.printSegment(.{ .text = status_text, .style = .{ .fg = status_color, .bg = header_bg } }, .{ .col_offset = status_col + 3, .row_offset = 1 });
 
-        // Separator line in row 1 of header
+        // Separator line at row 2
         {
             var col: u16 = 0;
             while (col < win.width) : (col += 1) {
-                header.writeCell(col, 1, .{ .char = .{ .grapheme = "\xe2\x94\x80" }, .style = .{ .fg = dim_fg, .bg = header_bg } }); // "─"
+                header.writeCell(col, 2, .{ .char = .{ .grapheme = "\xe2\x94\x80" }, .style = .{ .fg = dim_fg, .bg = header_bg } }); // "─"
             }
         }
 
@@ -372,14 +373,14 @@ pub fn main() !void {
             .style = .{ .fg = dim_fg, .bg = footer_bg },
         }, .{ .col_offset = count_col });
 
-        // Job list area
-        const list_height = win.height -| 3;
+        // Job list area (below header, above footer)
+        const list_height = win.height -| (header_height + 1);
         if (list_height == 0) {
             try vx.render(tty.writer());
             continue;
         }
         const list = win.child(.{
-            .y_off = 2,
+            .y_off = @as(i17, @intCast(header_height)),
             .width = win.width,
             .height = list_height,
         });
