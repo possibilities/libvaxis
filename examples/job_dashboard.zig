@@ -452,34 +452,38 @@ pub fn main() !void {
                 });
                 card.fill(.{ .style = .{ .bg = bg } });
 
-                // Top border
+                // Corners
+                card.writeCell(0, 0, .{ .char = .{ .grapheme = "\xe2\x94\x8c" }, .style = .{ .fg = border_color, .bg = bg } }); // "┌"
+                card.writeCell(card_width -| 1, 0, .{ .char = .{ .grapheme = "\xe2\x94\x90" }, .style = .{ .fg = border_color, .bg = bg } }); // "┐"
+                card.writeCell(0, card_height - 1, .{ .char = .{ .grapheme = "\xe2\x94\x94" }, .style = .{ .fg = border_color, .bg = bg } }); // "└"
+                card.writeCell(card_width -| 1, card_height - 1, .{ .char = .{ .grapheme = "\xe2\x94\x98" }, .style = .{ .fg = border_color, .bg = bg } }); // "┘"
+
+                // Top and bottom borders (between corners)
                 {
-                    var col: u16 = 0;
-                    while (col < card_width) : (col += 1) {
-                        card.writeCell(col, 0, .{
-                            .char = .{ .grapheme = "\xe2\x94\x80" }, // "─"
-                            .style = .{ .fg = border_color, .bg = bg },
-                        });
+                    var col: u16 = 1;
+                    while (col < card_width -| 1) : (col += 1) {
+                        card.writeCell(col, 0, .{ .char = .{ .grapheme = "\xe2\x94\x80" }, .style = .{ .fg = border_color, .bg = bg } }); // "─"
+                        card.writeCell(col, card_height - 1, .{ .char = .{ .grapheme = "\xe2\x94\x80" }, .style = .{ .fg = border_color, .bg = bg } }); // "─"
                     }
                 }
 
-                // Bottom border
+                // Left and right vertical borders
                 {
-                    var col: u16 = 0;
-                    while (col < card_width) : (col += 1) {
-                        card.writeCell(col, card_height - 1, .{
-                            .char = .{ .grapheme = "\xe2\x94\x80" }, // "─"
-                            .style = .{ .fg = border_color, .bg = bg },
-                        });
+                    var row: u16 = 1;
+                    while (row < card_height - 1) : (row += 1) {
+                        card.writeCell(0, row, .{ .char = .{ .grapheme = "\xe2\x94\x82" }, .style = .{ .fg = border_color, .bg = bg } }); // "│"
+                        card.writeCell(card_width -| 1, row, .{ .char = .{ .grapheme = "\xe2\x94\x82" }, .style = .{ .fg = border_color, .bg = bg } }); // "│"
                     }
                 }
 
-                // Left accent bar for selected card
+                // Selected card: accent bar overrides left side
                 if (is_selected) {
                     card.writeCell(0, 0, .{ .char = .{ .grapheme = "\xe2\x94\x8c" }, .style = .{ .fg = sel_border, .bg = bg } }); // "┌"
-                    card.writeCell(0, 1, .{ .char = .{ .grapheme = "\xe2\x96\x90" }, .style = .{ .fg = sel_border, .bg = bg } }); // "▐"
-                    card.writeCell(0, 2, .{ .char = .{ .grapheme = "\xe2\x96\x90" }, .style = .{ .fg = sel_border, .bg = bg } }); // "▐"
                     card.writeCell(0, card_height - 1, .{ .char = .{ .grapheme = "\xe2\x94\x94" }, .style = .{ .fg = sel_border, .bg = bg } }); // "└"
+                    var row: u16 = 1;
+                    while (row < card_height - 1) : (row += 1) {
+                        card.writeCell(0, row, .{ .char = .{ .grapheme = "\xe2\x96\x90" }, .style = .{ .fg = sel_border, .bg = bg } }); // "▐"
+                    }
                 }
 
                 // Row 1: project name
