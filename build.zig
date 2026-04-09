@@ -34,6 +34,7 @@ pub fn build(b: *std.Build) void {
     const Example = enum {
         cli,
         counter,
+        event_viewer,
         fuzzy,
         image,
         job_dashboard,
@@ -66,6 +67,9 @@ pub fn build(b: *std.Build) void {
     });
 
     const example_run = b.addRunArtifact(example);
+    if (b.args) |args| {
+        example_run.addArgs(args);
+    }
     example_step.dependOn(&example_run.step);
 
     // Benchmarks
