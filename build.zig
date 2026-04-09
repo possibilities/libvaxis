@@ -41,6 +41,7 @@ pub fn build(b: *std.Build) void {
         scroll,
         split_view,
         table,
+        textures,
         text_input,
         text_view,
         list_view,
