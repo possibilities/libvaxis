@@ -40,6 +40,7 @@ pub fn build(b: *std.Build) void {
         job_dashboard,
         main,
         scroll,
+        slug_status,
         split_view,
         table,
         textures,
