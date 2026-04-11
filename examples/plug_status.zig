@@ -3,7 +3,7 @@ const vaxis = @import("vaxis");
 
 const sample_json =
     \\{
-    \\  "slug": "lovely-sauteeing-charm",
+    \\  "plug": "lovely-sauteeing-charm",
     \\  "status": "running",
     \\  "progress": 42,
     \\  "active": true,
